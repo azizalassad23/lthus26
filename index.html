@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber-Exam Terminal v2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /* TEMA CYBERPUNK CATCHY TAPI NYAMAN DI MATA */
+        :root {
+            --bg-base: #0b0c10;
+            --bg-panel: #15161e;
+            --neon-yellow: #fcee0a;
+            --neon-blue: #00e5ff;
+            --neon-pink: #ff0055;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'VT323', monospace;
+            background-color: var(--bg-base);
+            background-image: 
+                linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center center;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            font-size: 22px; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-base);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; transition: opacity 0.5s ease-out;
+        }
+        
+        .sys-logo { font-size: 4rem; color: var(--neon-yellow); text-shadow: 0 0 10px rgba(252, 238, 10, 0.5); margin-bottom: 10px; text-align: center; }
+        .loading-bar-wrapper { width: 80%; max-width: 350px; height: 10px; background: var(--bg-panel); border: 1px solid var(--neon-blue); position: relative; overflow: hidden; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }
+        .loading-bar-fill { height: 100%; background: var(--neon-blue); width: 0%; animation: bootUp 2.5s cubic-bezier(0.1, 0.7, 1.0, 0.1) forwards; }
+        @keyframes bootUp { 0% { width: 0%; } 40% { width: 40%; } 60% { width: 45%; } 100% { width: 100%; } }
+
+        /* --- CONTAINER --- */
+        .container {
+            max-width: 950px; width: 90%; padding: 40px 15px;
+            display: none; flex-direction: column; align-items: center;
+        }
+
+        .glitch-title {
+            color: var(--neon-yellow);
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 2px 2px 0px var(--neon-pink);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* --- MENU KARTU CYBERPUNK --- */
+        #main-menu {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 30px;
+            width: 100%; margin-top: 40px;
+        }
+
+        .cyber-card {
+            background: var(--bg-panel); border: 1px solid var(--text-muted);
+            width: 320px; padding: 40px 25px 25px 25px;
+            cursor: pointer; position: relative; transition: all 0.3s ease;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+            text-align: left; display: flex; flex-direction: column;
+        }
+
+        .cyber-card::before {
+            content: 'DATA_SHARD //'; position: absolute; top: 0; left: 0;
+            background: var(--text-muted); color: var(--bg-base);
+            padding: 2px 10px; font-size: 16px; font-weight: bold; transition: all 0.3s ease;
+        }
+
+        .cyber-card:hover {
+            transform: translateY(-5px); border-color: var(--neon-blue);
+            background: linear-gradient(180deg, rgba(0, 229, 255, 0.1) 0%, var(--bg-panel) 100%);
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.15);
+        }
+
+        .cyber-card:hover::before { background: var(--neon-blue); }
+        .card-title { color: var(--neon-blue); font-size: 2.2rem; margin: 10px 0; text-transform: uppercase; }
+        .cyber-card:hover .card-title { color: var(--neon-yellow); text-shadow: 0 0 8px rgba(252, 238, 10, 0.4); }
+        .card-desc { color: var(--text-muted); font-size: 1.1rem; line-height: 1.4; margin-bottom: 20px; }
+        .card-btn { margin-top: auto; color: var(--neon-blue); font-size: 1.3rem; border-top: 1px dashed var(--text-muted); padding-top: 10px; }
+
+        /* --- EXAM UI --- */
+        #exam-section { width: 100%; display: none; }
+
+        .header-panel {
+            background: var(--bg-panel); border-bottom: 3px solid var(--neon-yellow);
+            padding: 15px 20px; margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+        }
+
+        .status-blink { color: var(--neon-blue); animation: blink 1s infinite; font-size: 1.3rem;}
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        .question-box {
+            background: var(--bg-panel); border-left: 4px solid var(--neon-blue);
+            padding: 30px; margin-bottom: 30px; position: relative;
+        }
+
+        .q-number { color: var(--neon-yellow); font-size: 1.2rem; letter-spacing: 1px; margin-bottom: 15px; display: block; border-bottom: 1px solid rgba(252, 238, 10, 0.3); padding-bottom: 5px;}
+        .question-text { font-size: 1.5rem; line-height: 1.5; white-space: pre-wrap; }
+
+        /* GRID OPSI */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .option-label {
+            background: rgba(255,255,255,0.02); border: 1px solid var(--text-muted);
+            padding: 15px 20px; cursor: pointer; display: flex; align-items: flex-start;
+            transition: all 0.2s; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+        }
+
+        .option-label:hover { border-color: var(--neon-blue); background: rgba(0, 229, 255, 0.05); transform: translateX(5px); }
+        .option-label input[type="radio"] { display: none; }
+        .opt-letter { color: var(--neon-blue); margin-right: 15px; font-weight: bold; font-size: 1.3rem; }
+
+        .option-label.selected {
+            background: rgba(252, 238, 10, 0.1); border-color: var(--neon-yellow);
+            box-shadow: inset 4px 0 0 var(--neon-yellow);
+        }
+        .option-label.selected .opt-letter { color: var(--neon-yellow); }
+
+        /* TOMBOL NAVIGASI */
+        .btn-nav-container { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+        .cyber-btn {
+            background: transparent; color: var(--neon-blue); border: 1px solid var(--neon-blue);
+            padding: 10px 30px; font-family: 'VT323', monospace; font-size: 1.4rem; cursor: pointer; transition: 0.2s;
+            text-transform: uppercase; text-align: center;
+        }
+        .cyber-btn:hover:not(:disabled) { background: var(--neon-blue); color: var(--bg-base); box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+        .cyber-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
+
+        .btn-submit { background: rgba(255, 0, 85, 0.1); color: var(--neon-pink); border-color: var(--neon-pink); width: 100%; margin-top: 40px; padding: 15px; font-size: 1.8rem; }
+        .btn-submit:hover { background: var(--neon-pink); color: #fff; box-shadow: 0 0 15px rgba(255, 0, 85, 0.6); }
+
+        /* GRID NOMOR BAWAH */
+        .nav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 10px; margin-top: 40px; }
+        .nav-btn {
+            background: transparent; border: 1px solid #333; color: var(--text-muted);
+            height: 45px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-family: 'VT323', monospace; font-size: 1.3rem; transition: 0.2s;
+        }
+        .nav-btn:hover { border-color: var(--neon-blue); color: var(--neon-blue); }
+        .nav-btn.active { border-color: var(--neon-yellow); color: var(--neon-yellow); background: rgba(252, 238, 10, 0.1); }
+        .nav-btn.answered { border-color: var(--neon-blue); background: rgba(0, 229, 255, 0.15); color: #fff; }
+
+        /* RESULT */
+        #result-section { display: none; text-align: center; width: 100%; }
+        .score-box { border: 2px solid var(--neon-blue); padding: 40px; margin: 30px auto; max-width: 350px; background: var(--bg-panel); position: relative; }
+        .score-box::before { content:''; position:absolute; top:-2px; left:-2px; width:20px; height:20px; border-top: 4px solid var(--neon-yellow); border-left: 4px solid var(--neon-yellow); }
+        .score-box::after { content:''; position:absolute; bottom:-2px; right:-2px; width:20px; height:20px; border-bottom: 4px solid var(--neon-yellow); border-right: 4px solid var(--neon-yellow); }
+        .score-number { font-size: 7rem; color: var(--neon-blue); margin: 0; line-height: 1; text-shadow: 0 0 20px rgba(0, 229, 255, 0.4); }
+
+        pre { background: #07080a; color: var(--neon-blue); padding: 15px; border-left: 3px solid var(--neon-pink); overflow-x: auto; font-size: 1.2rem; }
+
+        /* =========================================
+           MEDIA QUERIES UNTUK RESPONSIVE (MOBILE)
+           ========================================= */
+        @media (max-width: 768px) {
+            body { font-size: 18px; } /* Ukuran font dasar mengecil di HP */
+            .container { width: 95%; padding: 20px 10px; }
+            .sys-logo { font-size: 3rem; }
+            
+            .glitch-title { font-size: 2.2rem; letter-spacing: 2px; }
+            
+            /* Menu Kartu menyesuaikan layar penuh */
+            #main-menu { gap: 20px; margin-top: 20px; }
+            .cyber-card { width: 100%; padding: 35px 20px 20px 20px; }
+            .card-title { font-size: 1.8rem; }
+            
+            /* Header ditumpuk (Stack) di HP */
+            .header-panel { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                gap: 10px; 
+                padding: 15px; 
+            }
+            #exam-title { font-size: 1.2rem !important; }
+            .status-blink { font-size: 1.1rem; }
+
+            /* Jarak soal diperkecil agar lega di HP */
+            .question-box { padding: 20px 15px; margin-bottom: 20px; }
+            .question-text { font-size: 1.3rem; }
+
+            /* Opsi jawaban menjadi 1 kolom vertikal */
+            .options-grid { grid-template-columns: 1fr; gap: 12px; }
+            .option-label { padding: 12px 15px; }
+            .opt-letter { font-size: 1.2rem; margin-right: 10px; }
+
+            /* Tombol navigasi Previous & Next lebih ringkas */
+            .cyber-btn { padding: 10px 15px; font-size: 1.2rem; flex: 1; }
+            .btn-nav-container { gap: 10px; }
+            .btn-submit { font-size: 1.4rem; padding: 15px; }
+
+            /* Kotak nomor navigasi bawah diperkecil agar muat banyak */
+            .nav-grid { grid-template-columns: repeat(auto-fill, minmax(35px, 1fr)); gap: 8px; margin-top: 25px; }
+            .nav-btn { height: 38px; font-size: 1.1rem; }
+
+            .score-number { font-size: 5rem; }
+            .score-box { padding: 30px; margin: 20px auto; width: 80%; }
+            pre { font-size: 1rem; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="sys-logo">SYS_INIT</div>
+        <div class="loading-bar-wrapper"><div class="loading-bar-fill"></div></div>
+        <p style="color: var(--neon-blue); margin-top: 15px; letter-spacing: 2px;">Establishing Neural Link...</p>
+    </div>
+
+    <div class="container" id="main-container">
+        
+        <div id="main-menu">
+            <div style="width: 100%; text-align: center; margin-bottom: 10px;">
+                <h1 class="glitch-title">PORTAL UJI COBA UJIAN SEKOLAH</h1>
+                <p style="color: var(--text-muted); font-size: 1.1rem;">Pilih modul simulasi di bawah ini untuk memulai evaluasi.</p>
+            </div>
+            
+            <div class="cyber-card" onclick="startSimulation(1)">
+                <h2 class="card-title">Uji Coba 01</h2>
+                <div class="card-btn">GAS KERJAIN></div>
+            </div>
+
+            <div class="cyber-card" onclick="startSimulation(2)">
+                <h2 class="card-title">Uji Coba 02</h2>
+                <div class="card-btn">GAS KERJAIN ></div>
+            </div>
+        </div>
+
+        <div id="exam-section">
+            <div class="header-panel">
+                <div>
+                    <span style="color:var(--text-muted);">CURRENT_MODULE:</span> 
+                    <span id="exam-title" style="color:var(--neon-yellow); font-size: 1.4rem;">UJI COBA 1</span>
+                </div>
+                <div class="status-blink">[ CONNECTION: SECURE ]</div>
+            </div>
+
+            <div id="question-container"></div>
+
+            <div class="btn-nav-container">
+                <button class="cyber-btn" id="prevBtn" onclick="changeQuestion(-1)">&lt; Mundur</button>
+                <button class="cyber-btn" id="nextBtn" onclick="changeQuestion(1)">Lanjut &gt;</button>
+            </div>
+
+            <div class="nav-grid" id="nav-grid"></div>
+
+            <button class="cyber-btn btn-submit" onclick="finishExam()">// TRANSMIT DATA UJIAN //</button>
+        </div>
+
+        <div id="result-section">
+            <h2 class="glitch-title" style="color: var(--neon-blue); text-shadow: 2px 2px 0px var(--neon-yellow);">TRANSMISI SELESAI</h2>
+            <p style="color: var(--text-muted); font-size: 1.3rem;">Data berhasil direkam oleh sistem.</p>
+            <div class="score-box">
+                <p style="margin: 0; color: var(--text-muted); font-size: 1.2rem; letter-spacing: 2px;">TOTAL SKOR</p>
+                <h1 class="score-number" id="score-display">0</h1>
+            </div>
+            <button class="cyber-btn" onclick="location.reload()" style="margin-top: 20px;">[ REBOOT SYSTEM ]</button>
+        </div>
+
+    </div>
+
+<script>
+    // Enkripsi Sederhana: A: X7 | B: Y8 | C: Z9 | D: W6 | E: V5
+    const _map = { "A": "X7", "B": "Y8", "C": "Z9", "D": "W6", "E": "V5" };
+
+    // SET 1 (Ujian Sekolah - 50 Soal)
+    const set1 = [
+        {id:1, q:"Karakteristik utama dari memori RAM (Random Access Memory) ketika komputer kehilangan daya listrik secara tiba-tiba adalah...", _k:"Z9", ops:{A:"Mengompresi seluruh data", B:"Memindahkan data ke Harddisk", C:"Menghapus seluruh data sementara", D:"Mengunci data dengan enkripsi", E:"Menyimpan data secara permanen"}},
+        {id:2, q:"Perbedaan mendasar antara teknologi penyimpanan SSD (Solid State Drive) dan HDD (Hard Disk Drive) terletak pada komponen pembacanya, yaitu...", _k:"W6", ops:{A:"SSD menggunakan piringan magnetik", B:"HDD menggunakan chip flash memory", C:"SSD menggunakan lensa optik laser", D:"SSD menggunakan chip memori tanpa komponen bergerak", E:"HDD tidak membutuhkan daya listrik"}},
+        {id:3, q:"Fungsi utama penggunaan tanda dolar ($) pada rumus Microsoft Excel (sebagai contoh: =$A$1*B1) adalah...", _k:"Y8", ops:{A:"Mengubah format sel menjadi mata uang", B:"Mengunci referensi sel agar tidak bergeser saat disalin", C:"Mencegah sel agar tidak bisa diedit oleh pengguna", D:"Mengalikan data dengan kurs dolar otomatis", E:"Menyembunyikan teks di dalam sel tersebut"}},
+        {id:4, q:"Fitur pada Microsoft Excel yang paling efisien digunakan untuk merangkum, menganalisis, dan mengelompokkan ribuan baris data mentah secara dinamis adalah...", _k:"Z9", ops:{A:"Data Validation", B:"Conditional Formatting", C:"Pivot Table", D:"VLOOKUP", E:"Format Painter"}},
+        {id:5, q:"Fungsi utama dari fitur Slide Master pada Microsoft PowerPoint adalah...", _k:"Y8", ops:{A:"Mengatur transisi seragam untuk semua slide", B:"Membuat desain tata letak dan latar belakang yang seragam", C:"Mencetak beberapa slide dalam satu lembar kertas", D:"Merekam suara narasi untuk presentasi", E:"Mengubah format file menjadi video interaktif"}},
+        {id:6, q:"Inti dari sebuah Sistem Operasi yang berfungsi menjembatani komunikasi antara perangkat lunak (software) dan perangkat keras (hardware) disebut...", _k:"Z9", ops:{A:"Shell", B:"Terminal", C:"Kernel", D:"GUI", E:"Command Line"}},
+        {id:7, q:"Untuk memutus teks agar secara otomatis berpindah ke halaman baru pada Microsoft Word tanpa harus menekan tombol Enter berkali-kali, fitur yang ditekan adalah...", _k:"X7", ops:{A:"Page Break", B:"Section Break", C:"Text Wrapping", D:"Line Break", E:"Column Break"}},
+        {id:8, q:"Dalam jaringan nirkabel (WLAN), perangkat yang berfungsi memancarkan sinyal SSID agar dapat dihubungkan ke berbagai perangkat klien disebut...", _k:"Y8", ops:{A:"Repeater", B:"Access Point", C:"Switch", D:"Bridge", E:"Modem"}},
+        {id:9, q:"Jika sebuah jaringan lokal menggunakan Subnet Mask 255.255.255.0, maka nilai notasi Prefix (CIDR) yang setara adalah...", _k:"Z9", ops:{A:"/8", B:"/16", C:"/24", D:"/26", E:"/32"}},
+        {id:10, q:"Alamat fisik unik yang tertanam secara permanen pada setiap kartu jaringan (Network Interface Card) dan bekerja pada Layer 2 OSI Model disebut...", _k:"W6", ops:{A:"IP Address", B:"Port Address", C:"IPv6 Address", D:"MAC Address", E:"Logical Address"}},
+        {id:11, q:"Perbedaan utama antara protokol HTTP dan HTTPS dalam jaringan internet terletak pada aspek...", _k:"Z9", ops:{A:"Kecepatan transfer file", B:"Format bahasa pemrograman", C:"Keamanan dan enkripsi data", D:"Kebutuhan kuota internet", E:"Jenis browser yang digunakan"}},
+        {id:12, q:"Inti (core) dari kabel jaringan Fiber Optic yang berfungsi sebagai media transmisi cahaya biasanya terbuat dari bahan...", _k:"Z9", ops:{A:"Tembaga murni", B:"Alumunium foil", C:"Serat kaca atau plastik", D:"Logam campuran", E:"Baja tahan karat"}},
+        {id:13, q:"Alamat IP 127.0.0.1 secara universal dalam jaringan komputer dialokasikan sebagai alamat...", _k:"W6", ops:{A:"Broadcast Network", B:"Subnet Mask Default", C:"Gateway Router", D:"Loopback (Localhost)", E:"Multicast Address"}},
+        {id:14, q:"Perintah pada Command Prompt Windows yang menampilkan informasi alamat IP lengkap beserta MAC Address dari semua adapter jaringan adalah...", _k:"X7", ops:{A:"ipconfig /all", B:"ipconfig /release", C:"netstat -a", D:"traceroute", E:"ping -t"}},
+        {id:15, q:"Karakteristik utama dari topologi jaringan Mesh adalah...", _k:"Z9", ops:{A:"Menggunakan satu kabel tulang punggung utama", B:"Semua komputer terhubung ke satu titik pusat", C:"Setiap komputer saling terhubung langsung satu sama lain", D:"Data mengalir searah jarum jam secara melingkar", E:"Hanya cocok untuk dua buah komputer saja"}},
+        {id:16, q:"Pada Cisco Packet Tracer, perintah CLI yang digunakan untuk menyimpan konfigurasi dari RAM ke NVRAM agar tidak hilang saat router dimatikan adalah...", _k:"Y8", ops:{A:"save running-config", B:"copy run start", C:"write memory clear", D:"backup config", E:"commit save"}},
+        {id:17, q:"Saat Anda melakukan pengujian ping antar Router melalui tab CLI di Cisco Packet Tracer, indikator yang menunjukkan paket berhasil terkirim adalah simbol...", _k:"Y8", ops:{A:"Titik (.....)", B:"Tanda Seru (!!!!!)", C:"Tanda Tanya (?????)", D:"Tanda Bintang (*****)", E:"Tanda Pagar (#####)"}},
+        {id:18, q:"Perangkat jaringan yang wajib dikonfigurasi agar dua buah VLAN (Virtual LAN) yang berbeda dapat saling berkomunikasi adalah...", _k:"W6", ops:{A:"Access Point", B:"Hub", C:"Repeater", D:"Router (Routing inter-VLAN)", E:"Bridge Transparan"}},
+        {id:19, q:"Dalam menu Connections di Packet Tracer, ikon kabel serial yang menghubungkan jalur WAN antar router disimbolkan dengan gambar...", _k:"Z9", ops:{A:"Garis hitam putus-putus", B:"Garis hitam solid", C:"Petir berwarna merah", D:"Kabel berwarna biru melengkung", E:"Garis putus-putus berwarna oranye"}},
+        {id:20, q:"Tombol \"Fast Forward Time\" (ikon panah ganda) pada Packet Tracer biasanya ditekan untuk tujuan...", _k:"Y8", ops:{A:"Mempercepat waktu pemuatan aplikasi", B:"Mempercepat proses konvergensi atau negosiasi protokol STP", C:"Mengulang simulasi dari detik ke nol", D:"Meningkatkan bandwidth kabel jaringan", E:"Menguji ketahanan router terhadap lag"}},
+        {id:21, q:"Dalam pemrograman C++, perintah cin tidak dapat membaca string yang mengandung spasi. Solusi fungsi yang tepat untuk membaca input kalimat berspasi adalah...", _k:"Z9", ops:{A:"gets()", B:"scanf()", C:"getline()", D:"read()", E:"inputString()"}},
+        {id:22, q:"Operator aritmatika % (Modulo) dalam bahasa pemrograman C++ berfungsi untuk...", _k:"Y8", ops:{A:"Menghitung persentase nilai", B:"Menghasilkan sisa hasil bagi dari dua bilangan", C:"Membagi bilangan desimal", D:"Mengalikan variabel dengan bilangan acak", E:"Mengubah angka menjadi tipe persentase"}},
+        {id:23, q:"Apa yang akan terjadi jika struktur switch-case dalam C++ tidak diakhiri dengan perintah break pada setiap case-nya?", _k:"Y8", ops:{A:"Program mengalami kompilasi error", B:"Blok case berikutnya akan ikut tereksekusi secara beruntun", C:"Program otomatis berhenti dan tertutup", D:"Blok default akan selalu dipanggil pertama kali", E:"Tidak terjadi apa-apa, fungsi tetap berjalan normal"}},
+        {id:24, q:"Deklarasi array dua dimensi yang benar untuk menyimpan data matriks berukuran 3 baris dan 4 kolom dalam C++ adalah...", _k:"Z9", ops:{A:"int matriks[4][3];", B:"int matriks(3, 4);", C:"int matriks[3][4];", D:"array matriks[3, 4];", E:"int matriks{3}{4};"}},
+        {id:25, q:"Sebuah fungsi di C++ dideklarasikan dengan bool cekStatus();. Tipe data bool mengindikasikan bahwa fungsi tersebut hanya akan mengembalikan nilai...", _k:"Z9", ops:{A:"Angka nol hingga sembilan", B:"Karakter huruf alfabet tunggal", C:"True (1) atau False (0)", D:"Teks string berukuran pendek", E:"Pecahan desimal"}},
+        {id:26, q:"Dalam konsep Pointer pada C++, simbol & (Ampersand) yang diletakkan di depan variabel berfungsi untuk...", _k:"Y8", ops:{A:"Menghapus variabel dari memori", B:"Mengambil alamat memori dari variabel tersebut", C:"Menunjuk ke nilai variabel lain", D:"Mengalikan memori variabel", E:"Menggabungkan dua buah variabel"}},
+        {id:27, q:"Jika sebuah fungsi dalam C++ diawali dengan kata kunci void, ini berarti fungsi tersebut...", _k:"W6", ops:{A:"Harus menerima parameter input", B:"Akan mengembalikan nilai integer", C:"Bersifat rahasia dan tidak bisa diakses", D:"Tidak mengembalikan nilai apapun (return value)", E:"Menghapus variabel global di luar fungsi"}},
+        {id:28, q:"Kueri SQL yang digunakan untuk mengubah nama sebuah tabel dari \"murid\" menjadi \"siswa\" adalah...", _k:"X7", ops:{A:"ALTER TABLE murid RENAME TO siswa;", B:"UPDATE TABLE murid SET NAME = siswa;", C:"CHANGE TABLE murid TO siswa;", D:"MODIFY TABLE murid NAME siswa;", E:"REPLACE TABLE murid WITH siswa;"}},
+        {id:29, q:"Apa yang akan terjadi jika Anda mengeksekusi perintah DML UPDATE barang SET harga = 5000; tanpa menggunakan klausa WHERE?", _k:"Z9", ops:{A:"Kueri gagal dan memunculkan pesan error", B:"Hanya baris pertama yang harganya berubah", C:"Seluruh data di tabel tersebut harganya berubah menjadi 5000", D:"Baris terakhir di tabel akan terhapus otomatis", E:"Tabel barang akan terkunci untuk sementara"}},
+        {id:30, q:"Pada konsep relasi tabel, hasil dari RIGHT JOIN akan selalu menampilkan...", _k:"Y8", ops:{A:"Hanya data yang memiliki kecocokan di kedua tabel", B:"Seluruh data dari tabel kanan, meskipun tabel kiri tidak memiliki kecocokan", C:"Seluruh data dari tabel kiri secara utuh", D:"Data yang sama sekali tidak memiliki relasi", E:"Penggabungan baris menjadi satu kolom memanjang"}},
+        {id:31, q:"Primary Key yang dibentuk dari gabungan dua kolom atau lebih dalam satu tabel untuk menciptakan nilai unik disebut...", _k:"Z9", ops:{A:"Foreign Key", B:"Super Key", C:"Composite Key", D:"Candidate Key", E:"Alternate Key"}},
+        {id:32, q:"Fungsi agregasi dalam SQL yang digunakan untuk mencari nilai tertinggi dalam sebuah kolom angka adalah...", _k:"W6", ops:{A:"TOP()", B:"HIGH()", C:"UPPER()", D:"MAX()", E:"LIMIT()"}},
+        {id:33, q:"Pada perintah SELECT * FROM guru WHERE nama LIKE '%A%';, tanda persen (%) memiliki arti...", _k:"Z9", ops:{A:"Mencari nama yang persis berupa huruf A saja", B:"Mencari nama yang memiliki huruf A di awal maupun di akhir", C:"Mencari nama yang mengandung huruf A di posisi manapun", D:"Menghitung persentase guru bernama awalan A", E:"Mengabaikan spasi pada penulisan nama guru"}},
+        {id:34, q:"Jika Anda merancang tabel SQL dan membutuhkan kolom untuk menyimpan teks artikel yang sangat panjang, tipe data yang paling tepat adalah...", _k:"Z9", ops:{A:"CHAR", B:"VARCHAR", C:"TEXT", D:"BOOLEAN", E:"DECIMAL"}},
+        {id:35, q:"Tambahan klausa ORDER BY nilai DESC di akhir kueri SQL akan mengurutkan baris data berdasarkan...", _k:"Y8", ops:{A:"Nilai terendah ke nilai tertinggi", B:"Nilai tertinggi ke nilai terendah", C:"Waktu input data paling lama", D:"Urutan abjad acak", E:"Pengelompokan baris yang sama"}},
+        {id:36, q:"Perintah Serial.begin(9600); pada pemrograman Arduino digunakan untuk...", _k:"Y8", ops:{A:"Memulai perhitungan timer selama 9600 milidetik", B:"Mengatur kecepatan komunikasi data serial pada 9600 baud", C:"Menentukan tegangan awal mikrokontroler menjadi 9.6 Volt", D:"Mengatur kapasitas maksimal array sebesar 9600", E:"Mengaktifkan pin analog nomor 9 dan 6"}},
+        {id:37, q:"Dalam sketch Arduino, perintah delay(1000); akan menghentikan eksekusi kode program berikutnya selama...", _k:"W6", ops:{A:"1000 detik penuh", B:"100 mikrodetik", C:"10 detik", D:"1 detik", E:"1 menit"}},
+        {id:38, q:"Komponen pada sistem IoT yang berfungsi untuk melakukan aksi fisik berdasarkan perintah mikrokontroler (misalnya membuka palang pintu) disebut...", _k:"Y8", ops:{A:"Sensor Ultrasonik", B:"Aktuator (contoh: Motor Servo)", C:"Kapasitor Keramik", D:"Modul Wi-Fi", E:"Breadboard"}},
+        {id:39, q:"Sensor Light Dependent Resistor (LDR) mendeteksi cahaya dengan cara mengubah nilai...", _k:"X7", ops:{A:"Hambatan (Resistansi) listrik", B:"Arus listrik secara konstan", C:"Sinyal digital murni", D:"Tegangan baterai utama", E:"Alamat MAC perangkat"}},
+        {id:40, q:"Untuk menghubungkan modul ESP8266 ke jaringan internet, file header (library) wajib yang harus disertakan di baris paling atas program adalah...", _k:"Y8", ops:{A:"#include &lt;Ethernet.h&gt;", B:"#include &lt;ESP8266WiFi.h&gt;", C:"#include &lt;Internet.h&gt;", D:"#include &lt;Network.h&gt;", E:"#include &lt;Web.h&gt;"}},
+        {id:41, q:"Jalur komunikasi I2C (Inter-Integrated Circuit) pada mikrokontroler untuk menghemat penggunaan pin sensor hanya menggunakan dua jalur kabel data, yaitu...", _k:"Z9", ops:{A:"TX dan RX", B:"VCC dan GND", C:"SDA dan SCL", D:"MISO dan MOSI", E:"PWM dan Analog"}},
+        {id:42, q:"Perbedaan karakteristik antara sinyal Digital dan sinyal Analog pada pin mikrokontroler adalah...", _k:"Y8", ops:{A:"Analog bernilai pasti 0 dan 1, Digital bernilai rentang kontinu", B:"Digital bernilai pasti 0 dan 1, Analog bernilai rentang kontinu", C:"Keduanya sama-sama memproses sinyal suhu", D:"Digital hanya untuk input, Analog hanya untuk output", E:"Sinyal Digital lebih boros daya listrik baterai"}},
+        {id:43, q:"Pada elemen form HTML, tipe masukan yang memungkinkan pengguna hanya dapat memilih satu opsi dari beberapa pilihan yang disediakan adalah...", _k:"Z9", ops:{A:"type=\"checkbox\"", B:"type=\"button\"", C:"type=\"radio\"", D:"type=\"submit\"", E:"type=\"text\""}},
+        {id:44, q:"Atribut yang ditambahkan pada tag &lt;td&gt; dalam HTML untuk menggabungkan dua kolom tabel secara horizontal menjadi satu adalah...", _k:"Y8", ops:{A:"rowspan=\"2\"", B:"colspan=\"2\"", C:"merge=\"2\"", D:"join=\"horizontal\"", E:"width=\"2\""}},
+        {id:45, q:"Tag HTML yang dirancang khusus untuk menyematkan dokumen atau halaman web lain di dalam halaman web saat ini (seperti menyematkan peta Google Maps) adalah...", _k:"Y8", ops:{A:"&lt;embed&gt;", B:"&lt;iframe&gt;", C:"&lt;link&gt;", D:"&lt;object&gt;", E:"&lt;canvas&gt;"}},
+        {id:46, q:"Dalam penulisan CSS, tanda koma (,) di antara dua buah selector seperti h1, p { color: red; } berfungsi untuk...", _k:"Z9", ops:{A:"Membuat hierarki elemen dari h1 ke p", B:"Menerapkan gaya secara spesifik jika p berada di dalam h1", C:"Menerapkan gaya yang sama persis pada elemen h1 dan p (Grouping)", D:"Membatalkan gaya elemen p dan mengutamakan h1", E:"Menandakan bahwa kode CSS mengalami error"}},
+        {id:47, q:"Berdasarkan aturan CSS Box Model, ruang kosong yang berada di bagian dalam elemen (antara batas border dan konten teks) diatur menggunakan properti...", _k:"W6", ops:{A:"Margin", B:"Outline", C:"Spacing", D:"Padding", E:"Position"}},
+        {id:48, q:"Perbedaan utama jika kita menyembunyikan elemen menggunakan CSS display: none; dibandingkan dengan visibility: hidden; adalah...", _k:"Y8", ops:{A:"display: none tetap menyisakan ruang kosong elemen di layar", B:"visibility: hidden tetap menyisakan ruang kosong elemen di layar", C:"Keduanya memiliki fungsi dan tampilan akhir yang sama persis", D:"display: none hanya menyembunyikan warna latar elemen", E:"visibility: hidden akan menghapus elemen dari struktur HTML"}},
+        {id:49, q:"Tag &lt;meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"&gt; yang selalu diletakkan di dalam &lt;head&gt; sangat penting fungsinya untuk...", _k:"Z9", ops:{A:"Meningkatkan kecepatan loading gambar di halaman", B:"Mengenkrpsi kode sumber HTML agar aman", C:"Membuat halaman web menjadi responsif dan rapi di layar ponsel", D:"Memunculkan animasi loading sebelum web terbuka", E:"Menghubungkan halaman web ke database MySQL"}},
+        {id:50, q:"Kode warna Hexadecimal standar yang merepresentasikan warna Hitam pekat murni di dalam CSS adalah...", _k:"Z9", ops:{A:"#FFFFFF", B:"#FF0000", C:"#000000", D:"#CCCCCC", E:"#00FF00"}}
+    ];
+
+    // SET 2 (Ujian Sekolah - 50 Soal)
+    const set2 = [
+        {id:1, q:"Komponen pada unit pemrosesan pusat (CPU) yang secara khusus bertugas melakukan operasi perhitungan matematika dan perbandingan logika adalah...", _k:"Z9", ops:{A:"Control Unit (CU)", B:"Register Memory", C:"Arithmetic Logic Unit (ALU)", D:"Cache Memory L1", E:"Random Access Memory (RAM)"}},
+        {id:2, q:"Manakah dari pernyataan berikut yang paling tepat menjelaskan perbedaan antara memori Cache dan Harddisk pada sistem komputer?", _k:"W6", ops:{A:"Cache menyimpan data permanen, Harddisk menyimpan data sementara", B:"Cache mempercepat akses data ke prosesor, Harddisk menyimpan data jangka panjang", C:"Cache memiliki kapasitas yang lebih besar dibandingkan ukuran Harddisk standar", D:"Cache membutuhkan daya baterai terpisah, Harddisk menggunakan daya listrik utama", E:"Cache digunakan untuk kartu grafis, Harddisk digunakan untuk sistem operasi"}},
+        {id:3, q:"Fitur pada Microsoft Word yang paling tepat digunakan untuk menyusun daftar rujukan halaman bab dan subbab secara otomatis adalah...", _k:"Y8", ops:{A:"Table of Contents", B:"Mail Merge System", C:"Cross-Reference", D:"Bibliography Insert", E:"Document Tracking"}},
+        {id:4, q:"Pada aplikasi Microsoft Excel, fungsi yang digabungkan untuk menghitung jumlah sel yang memenuhi sebuah kriteria atau syarat tertentu adalah...", _k:"Y8", ops:{A:"SUMIF", B:"COUNTIF", C:"AVERAGEIF", D:"VLOOKUP", E:"HLOOKUP"}},
+        {id:5, q:"Untuk menyajikan data presentasi yang sangat padat informasi di Microsoft PowerPoint, fitur yang memungkinkan pengguna membuat tombol interaktif antar slide adalah...", _k:"Y8", ops:{A:"Slide Transition", B:"Action Button / Hyperlink", C:"Custom Animation", D:"SmartArt Graphics", E:"Slide Master Design"}},
+        {id:6, q:"Fasilitas pada sistem operasi Windows yang digunakan untuk memantau kinerja RAM, CPU, dan menghentikan aplikasi yang mengalami not responding adalah...", _k:"Z9", ops:{A:"Control Panel", B:"Device Manager", C:"Task Manager", D:"System Configuration", E:"Command Prompt"}},
+        {id:7, q:"Saat menyalin rumus di Excel, Anda menggunakan referensi sel $B$5. Karakteristik sel tersebut ketika disalin ke baris atau kolom lain adalah...", _k:"W6", ops:{A:"Kolom B akan berubah, namun baris 5 tetap", B:"Baris 5 akan berubah, namun kolom B tetap", C:"Kolom dan baris akan bergeser sesuai posisi baru", D:"Kolom B dan baris 5 akan selalu terkunci dan tetap", E:"Sel tersebut tidak dapat disalin karena dilindungi"}},
+        {id:8, q:"Topologi jaringan yang menghubungkan semua perangkat secara berurutan membentuk siklus tertutup, di mana sinyal mengalir ke satu arah, disebut topologi...", _k:"Z9", ops:{A:"Bus", B:"Star", C:"Ring", D:"Mesh", E:"Tree"}},
+        {id:9, q:"Keunggulan utama penggunaan kabel jaringan Fiber Optic dibandingkan dengan kabel Unshielded Twisted Pair (UTP) konvensional adalah...", _k:"Z9", ops:{A:"Harga per meter jauh lebih murah", B:"Sangat lentur dan mudah dipasang di sudut ruangan", C:"Tahan terhadap gangguan gelombang elektromagnetik", D:"Tidak membutuhkan perangkat konektor khusus", E:"Dapat menghantarkan daya listrik sekaligus"}},
+        {id:10, q:"Protokol jaringan yang bertugas secara dinamis mendistribusikan konfigurasi IP Address kepada perangkat klien yang baru terhubung adalah...", _k:"Y8", ops:{A:"DNS (Domain Name System)", B:"DHCP (Dynamic Host Configuration Protocol)", C:"FTP (File Transfer Protocol)", D:"HTTP (Hypertext Transfer Protocol)", E:"SMTP (Simple Mail Transfer Protocol)"}},
+        {id:11, q:"Susunan warna pin 1 dan pin 2 pada ujung kabel UTP berstandar T568B yang sering digunakan untuk kabel Straight-through adalah...", _k:"X7", ops:{A:"Putih Orange dan Orange", B:"Putih Hijau dan Hijau", C:"Putih Biru dan Biru", D:"Putih Coklat dan Coklat", E:"Putih Orange dan Hijau"}},
+        {id:12, q:"Pada model referensi jaringan OSI 7 Layer, lapisan yang bertanggung jawab untuk memastikan paket data dikirim tanpa error (Error Recovery) adalah...", _k:"W6", ops:{A:"Physical Layer", B:"Data Link Layer", C:"Network Layer", D:"Transport Layer", E:"Application Layer"}},
+        {id:13, q:"Perbedaan mendasar cara kerja perangkat Switch dibandingkan dengan Hub pada jaringan LAN lokal adalah...", _k:"Z9", ops:{A:"Switch hanya dapat digunakan untuk koneksi internet nirkabel", B:"Switch mengirim data ke semua port, Hub hanya ke port tujuan", C:"Switch mengenali MAC Address tujuan, Hub meneruskan ke semua port", D:"Switch beroperasi pada layer 3 OSI, Hub beroperasi pada layer 4", E:"Switch membutuhkan konfigurasi IP, Hub membutuhkan konfigurasi DNS"}},
+        {id:14, q:"Dalam topologi LAN, jika alamat IP jaringan adalah 192.168.10.0 dengan subnet mask /24, maka alamat IP Broadcast dari jaringan tersebut adalah...", _k:"W6", ops:{A:"192.168.10.1", B:"192.168.10.128", C:"192.168.10.254", D:"192.168.10.255", E:"192.168.11.0"}},
+        {id:15, q:"Pada Cisco Packet Tracer, indikator titik koneksi pada kabel yang menghubungkan Switch dengan PC menunjukkan warna merah. Hal ini mengindikasikan bahwa...", _k:"W6", ops:{A:"Proses negosiasi pengiriman data sedang berlangsung lambat", B:"Koneksi berhasil terbentuk dan siap mentransfer paket data", C:"Terdapat paket data yang mengalami tabrakan (collision)", D:"Perangkat di salah satu atau kedua ujung dalam kondisi mati (down)", E:"Tipe kabel yang digunakan sudah tepat sesuai standar port"}},
+        {id:16, q:"Perintah CLI show ip route pada mode konfigurasi router di Cisco Packet Tracer berfungsi untuk...", _k:"Y8", ops:{A:"Menampilkan alamat IP pada antarmuka perangkat secara singkat", B:"Memeriksa tabel perutean yang tersimpan pada memori router", C:"Menghapus konfigurasi jaringan yang sedang berjalan", D:"Menguji konektivitas fisik antar router yang berdekatan", E:"Menyalakan port router yang sebelumnya dimatikan"}},
+        {id:17, q:"Saat Anda mengetikkan perintah enable dari mode User EXEC pada CLI Switch Cisco, Anda akan berpindah menuju ke mode...", _k:"W6", ops:{A:"Global Configuration", B:"Interface Configuration", C:"Line Configuration", D:"Privileged EXEC", E:"ROM Monitor"}},
+        {id:18, q:"Anda menghubungkan dua buah PC secara langsung. PC pertama adalah 10.0.0.1/8 dan PC kedua 10.0.0.2/8. Kabel yang paling tepat digunakan di Packet Tracer adalah...", _k:"Y8", ops:{A:"Copper Straight-Through", B:"Copper Cross-Over", C:"Fiber Optic", D:"Serial DCE", E:"Console Cable"}},
+        {id:19, q:"Anda mencoba melakukan ping dari PC klien ke Server 8.8.8.8, namun mendapatkan balasan \"Request Timed Out\". Maksud dari pesan error tersebut adalah...", _k:"Z9", ops:{A:"Kabel terputus di tengah jalan", B:"Komputer server menolak koneksi karena terhalang firewall", C:"Paket data terkirim namun balasan tidak diterima dalam batas waktu", D:"Tidak ada rute jaringan menuju server tersebut dari router awal", E:"Alamat IP asal dan alamat IP tujuan memiliki nilai yang sama persis"}},
+        {id:20, q:"Ikon perangkat pada Packet Tracer yang berfungsi sebagai representasi konektivitas internet luar atau jaringan publik luas disimbolkan dengan gambar...", _k:"Y8", ops:{A:"Petir berwarna merah solid", B:"Awan putih bertuliskan PT-Cloud", C:"Silinder berwarna biru muda", D:"Kotak hitam dengan antena kembar", E:"Parabola satelit berwarna putih"}},
+        {id:21, q:"Dalam pemrograman C++, untuk menyimpan teks kalimat seperti \"Selamat Datang di Sekolah\", tipe data yang paling tepat dan efisien dideklarasikan adalah...", _k:"V5", ops:{A:"char", B:"bool", C:"int", D:"float", E:"string"}},
+        {id:22, q:"Manakah dari simbol operator relasional berikut yang digunakan dalam bahasa C++ untuk memeriksa apakah dua nilai adalah tidak sama persis?", _k:"Z9", ops:{A:"=!", B:"!==", C:"!=", D:"<>", E:"><"}},
+        {id:23, q:"Perhatikan struktur perulangan C++ berikut ini:\nfor(int i = 5; i &gt; 1; i--) { cout << i; }\nHasil output yang tercetak ke layar console adalah...", _k:"Y8", ops:{A:"54321", B:"5432", C:"4321", D:"5", E:"Terjadi Error sintaks"}},
+        {id:24, q:"Saat menggunakan perintah cin pada bahasa C++, pembacaan input dari pengguna akan otomatis terhenti ketika sistem mendeteksi adanya karakter...", _k:"Z9", ops:{A:"Titik (.)", B:"Koma (,)", C:"Spasi (Space)", D:"Tanda kutip tunggal ('')", E:"Tanda kutip ganda (\"\")"}},
+        {id:25, q:"Pada bahasa pemrograman C++, perintah endl yang disisipkan setelah perintah output cout berfungsi spesifik untuk...", _k:"W6", ops:{A:"Mengakhiri seluruh proses berjalannya program secara paksa", B:"Menghapus baris teks sebelumnya yang sudah tercetak di layar", C:"Mencetak karakter spasi kosong sebanyak lima buah", D:"Memasukkan karakter ganti baris (newline) ke dalam output", E:"Mengosongkan memori variabel yang baru saja ditampilkan"}},
+        {id:26, q:"Pendeklarasian elemen array satu dimensi untuk menyimpan 3 buah nilai angka bulat secara langsung di C++ yang benar adalah...", _k:"X7", ops:{A:"int nilai[3] = {10, 20, 30};", B:"int nilai(3) = [10, 20, 30];", C:"int nilai{3} = (10, 20, 30);", D:"array nilai[3] = 10, 20, 30;", E:"int nilai = [10, 20, 30];"}},
+        {id:27, q:"Jika sebuah kondisi seleksi dituliskan sebagai if (nilai &gt;= 75) { ... }, maka blok kode di dalamnya akan dieksekusi hanya jika kondisi variabel bernilai...", _k:"W6", ops:{A:"Pasti di atas 75 tanpa menyentuh angka 75", B:"Kurang dari 75 hingga batas terendah", C:"Tepat bernilai 75 saja", D:"Bernilai 75 atau lebih tinggi", E:"Bernilai 75 atau lebih rendah"}},
+        {id:28, q:"Kueri SELECT * FROM pegawai; dalam bahasa basis data SQL memiliki fungsi spesifik untuk menampilkan...", _k:"Y8", ops:{A:"Hanya satu baris pertama dari tabel pegawai", B:"Seluruh baris dan seluruh kolom dari tabel pegawai", C:"Nama kolom yang ada di dalam tabel pegawai", D:"Baris data yang nilainya paling tinggi di tabel pegawai", E:"Jumlah total pegawai yang tercatat dalam tabel tersebut"}},
+        {id:29, q:"Dalam menulis kueri SQL, klausa yang digunakan untuk memfilter baris data berdasarkan syarat atau kriteria tertentu adalah klausa...", _k:"W6", ops:{A:"GROUP BY", B:"ORDER BY", C:"SELECT", D:"WHERE", E:"HAVING"}},
+        {id:30, q:"Jika Anda ingin mengurutkan hasil pencarian nama siswa dari huruf Z menurun ke huruf A, tambahan sintaks yang tepat di akhir kueri SQL adalah...", _k:"Y8", ops:{A:"ORDER BY nama ASC;", B:"ORDER BY nama DESC;", C:"SORT BY nama DESC;", D:"ALIGN BY nama Z-A;", E:"GROUP BY nama DESC;"}},
+        {id:31, q:"Karakteristik utama dari operasi penggabungan INNER JOIN pada dua buah tabel SQL adalah akan memunculkan data...", _k:"Z9", ops:{A:"Dari tabel pertama meskipun tidak ada kecocokan di tabel kedua", B:"Dari tabel kedua meskipun tidak ada kecocokan di tabel pertama", C:"Hanya baris yang memiliki nilai kunci asing (foreign key) yang cocok di kedua tabel", D:"Seluruh baris tanpa terkecuali, mengisi kolom kosong dengan nilai NULL", E:"Gabungan tabel dari atas ke bawah tanpa menghubungkan kolom relasi"}},
+        {id:32, q:"Perintah UPDATE produk SET harga = harga + 1000 WHERE id_kategori = 5; akan memberikan efek manipulasi data berupa...", _k:"Y8", ops:{A:"Mengubah id_kategori produk menjadi angka 5", B:"Menambahkan harga produk dengan id kategori 5 sebesar 1000", C:"Menjadikan harga seluruh produk tepat bernilai 1000", D:"Menghapus kategori 5 yang harganya lebih dari 1000", E:"Membuat tabel baru dengan harga di atas 1000 untuk kategori 5"}},
+        {id:33, q:"Fungsi agregasi (Aggregation Function) SQL yang dirancang khusus untuk menghitung nilai rata-rata dari sebuah kolom bertipe numerik adalah...", _k:"V5", ops:{A:"SUM()", B:"COUNT()", C:"MEAN()", D:"TOTAL()", E:"AVG()"}},
+        {id:34, q:"Constraint SQL yang digunakan pada sebuah kolom tabel untuk memastikan bahwa nilainya harus selalu mereferensi pada Primary Key dari tabel lain adalah...", _k:"W6", ops:{A:"NOT NULL", B:"UNIQUE", C:"CHECK", D:"FOREIGN KEY", E:"DEFAULT"}},
+        {id:35, q:"Tipe data default pada sistem database SQL (seperti MySQL) untuk menyimpan format waktu Tanggal adalah DATE. Urutan penulisan standarnya adalah...", _k:"Z9", ops:{A:"DD-MM-YYYY", B:"MM-DD-YYYY", C:"YYYY-MM-DD", D:"YYYY-DD-MM", E:"DD-YYYY-MM"}},
+        {id:36, q:"Pin pada papan sirkuit Arduino Uno dibagi menjadi kelompok pin Digital dan Analog. Pin yang paling tepat digunakan untuk mengirimkan sinyal PWM (Pulse Width Modulation) ke motor servo adalah...", _k:"Z9", ops:{A:"Pin GND", B:"Pin 5V atau 3.3V", C:"Pin Digital yang memiliki simbol tilde (~)", D:"Pin Analog In (A0 - A5)", E:"Pin Reset"}},
+        {id:37, q:"Karakteristik utama yang membuat modul ESP8266 (seperti NodeMCU) sangat cocok digunakan dalam ekosistem Internet of Things (IoT) dibandingkan mikrokontroler standar adalah...", _k:"Z9", ops:{A:"Memiliki sensor kamera definisi tinggi yang terintegrasi secara internal", B:"Mendukung sistem operasi Windows 10 IoT Core secara bawaan", C:"Memiliki modul penghubung ke jaringan Wi-Fi langsung pada chip utamanya", D:"Tidak memerlukan kode pemrograman karena menggunakan antarmuka grafis penuh", E:"Konsumsi daya yang sangat tinggi untuk pemrosesan kecerdasan buatan"}},
+        {id:38, q:"Pada pemrograman sketch Arduino IDE, perintah Serial.println(\"Hello\"); akan menghasilkan keluaran data teks pada Serial Monitor berupa...", _k:"Z9", ops:{A:"Menghapus teks Hello di layar monitor serial", B:"Mencetak kata Hello dan tetap berada di baris yang sama", C:"Mencetak kata Hello dan memindahkan kursor penulisan ke baris baru", D:"Menyimpan kata Hello ke memori EEPROM tanpa mencetaknya", E:"Mengubah kata Hello menjadi format data kode biner asli"}},
+        {id:39, q:"Perintah delay(500); yang dituliskan di dalam blok fungsi void loop() pada pemrograman Arduino memiliki tujuan fungsional untuk...", _k:"Y8", ops:{A:"Menunda penjalanan baris program berikutnya selama 500 detik secara persis", B:"Menunda penjalanan baris program berikutnya selama setengah detik (500 milidetik)", C:"Mempercepat siklus perulangan sebesar 500 satuan mikrodetik", D:"Memerintahkan perangkat keras agar tertidur dan hemat daya listrik", E:"Menyalakan lampu LED secara berkedip sebanyak 500 kali tanpa henti"}},
+        {id:40, q:"Sensor jarak yang sangat populer dalam proyek mikrokontroler seperti HC-SR04 bekerja dengan cara memancarkan gelombang...", _k:"W6", ops:{A:"Cahaya infra merah (Infrared)", B:"Radio frekuensi (RFID)", C:"Cahaya laser tampak (Lidar)", D:"Suara berfrekuensi tinggi (Ultrasonik)", E:"Sinyal magnetik (Hall Effect)"}},
+        {id:41, q:"Tujuan utama penyertaan komponen tambahan Resistor yang dirangkai secara seri saat Anda menghubungkan lampu LED kecil ke pin digital Arduino adalah untuk...", _k:"Y8", ops:{A:"Meningkatkan kecerahan warna lampu LED", B:"Membatasi arus listrik yang lewat agar LED tidak panas dan terbakar", C:"Mengubah tegangan input menjadi sinyal berjenis analog murni", D:"Menghubungkan secara langsung ke jaringan internet tanpa kabel", E:"Menyimpan energi listrik sementara sebelum masuk ke LED"}},
+        {id:42, q:"Karakteristik alur penjalanan program dari blok fungsi void loop() yang terdapat pada kode sumber Arduino secara standar adalah...", _k:"Y8", ops:{A:"Dijalankan tepat dua kali setelah alat dihidupkan", B:"Dijalankan tanpa henti berulang kali selama daya listrik papan masih menyala", C:"Dijalankan hanya pada saat tombol push button ditekan manual oleh pengguna", D:"Dijalankan saat papan mengalami crash atau kehilangan daya", E:"Hanya akan dijalankan satu kali di awal sebagai fungsi penyetingan"}},
+        {id:43, q:"Di dalam dokumen HTML, tag spesifik yang digunakan untuk mendefinisikan bagian kepala kolom pada sebuah tabel (Table Header) adalah...", _k:"Z9", ops:{A:"&lt;tr&gt;", B:"&lt;td&gt;", C:"&lt;th&gt;", D:"&lt;thead&gt;", E:"&lt;tc&gt;"}},
+        {id:44, q:"Pada perancangan struktur antarmuka form web, atribut yang bertugas menentukan alamat URL ke mana data form akan dikirimkan setelah tombol submit ditekan adalah...", _k:"W6", ops:{A:"method", B:"name", C:"type", D:"action", E:"id"}},
+        {id:45, q:"Tag semantik HTML yang dirancang secara khusus untuk membuat daftar item di mana urutan tampilannya otomatis ditandai menggunakan angka berurutan (1, 2, 3...) adalah...", _k:"Z9", ops:{A:"&lt;dl&gt;", B:"&lt;ul&gt;", C:"&lt;ol&gt;", D:"&lt;li&gt;", E:"&lt;list&gt;"}},
+        {id:46, q:"Penerapan metode Internal CSS yang ditulis langsung menyatu di dalam sebuah file dokumen HTML yang sama mengharuskan pengembang untuk menempatkan blok styling tersebut di dalam tag...", _k:"X7", ops:{A:"&lt;style&gt;", B:"&lt;css&gt;", C:"&lt;script&gt;", D:"&lt;html&gt;", E:"&lt;body&gt;"}},
+        {id:47, q:"Properti dalam bahasa deklaratif CSS yang secara eksplisit digunakan untuk mengganti jenis rupa huruf (misalnya mengubah huruf menjadi Arial atau Times New Roman) adalah...", _k:"V5", ops:{A:"font-size", B:"font-weight", C:"text-decoration", D:"text-align", E:"font-family"}},
+        {id:48, q:"Jika Anda ingin menargetkan penerapan aturan CSS pada seluruh elemen HTML yang memiliki nama penanda kategori (class) yang sama, maka penulisan selector di file CSS harus diawali dengan karakter...", _k:"Y8", ops:{A:"Tanda Tagar / Hash (#)", B:"Tanda Titik (.)", C:"Tanda Kurung Kurawal ({)", D:"Tanda Dolar ($)", E:"Tanda Bintang (*)"}},
+        {id:49, q:"Saat Anda mendesain antarmuka fleksibel menggunakan Flexbox di CSS, properti yang digunakan untuk mengatur pemerataan jarak atau posisi elemen-elemen anak pada sumbu utama (main-axis) adalah...", _k:"V5", ops:{A:"align-items", B:"flex-direction", C:"align-content", D:"flex-wrap", E:"justify-content"}},
+        {id:50, q:"Perbedaan teknis yang paling mencolok antara penggunaan elemen &lt;input type=\"checkbox\"&gt; dengan &lt;input type=\"radio\"&gt; pada formulir web adalah...", _k:"W6", ops:{A:"Checkbox tidak dapat dikirim ke database, Radio dapat dikirim", B:"Checkbox digunakan untuk satu pilihan jawaban, Radio untuk pilihan ganda yang bisa dijawab lebih dari satu", C:"Checkbox digunakan untuk teks panjang, Radio untuk teks singkat", D:"Checkbox memungkinkan lebih dari satu pilihan terpilih, Radio membatasi hanya satu pilihan dalam kelompok yang sama", E:"Keduanya memiliki fungsi seleksi yang persis sama, hanya bentuk desain tampilannya yang berbeda"}}
+    ];
+
+    let currentQuestions = [];
+    let currentIdx = 0;
+    let answers = {};
+
+    // Animasi Loading Boot Up
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                document.getElementById('main-container').style.display = 'flex';
+            }, 500);
+        }, 2700); 
+    });
+
+    function startSimulation(setNumber) {
+        currentQuestions = setNumber === 1 ? set1 : set2;
+        answers = {}; 
+        currentIdx = 0;
+        
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('exam-section').style.display = 'block';
+        document.getElementById('exam-title').innerText = `MODUL SIMULASI 0${setNumber}`;
+        
+        renderNav();
+        loadQuestion(0);
+    }
+
+    function loadQuestion(index) {
+        currentIdx = index;
+        const q = currentQuestions[index];
+        const container = document.getElementById('question-container');
+        const savedAns = answers[q.id] || "";
+
+        let optionsHTML = "";
+        ['A', 'B', 'C', 'D', 'E'].forEach(opt => {
+            const isSelected = savedAns === opt ? "selected" : "";
+            optionsHTML += `
+                <label class="option-label ${isSelected}" onclick="selectOption('${opt}')">
+                    <span class="opt-letter">[${opt}]</span>
+                    <input type="radio" name="ans" value="${opt}">
+                    <span>${q.ops[opt]}</span>
+                </label>
+            `;
+        });
+
+        let qText = q.q;
+        if(qText.includes("int ") || qText.includes("SELECT ") || qText.includes("for(") || qText.includes("while(")) {
+             qText = `<pre>${qText}</pre>`;
+        }
+
+        container.innerHTML = `
+            <div class="question-box">
+                <span class="q-number">SYS_QUERY // ID_${q.id.toString().padStart(2, '0')}</span>
+                <div class="question-text">${qText}</div>
+                <div class="options-grid" style="margin-top: 25px;">${optionsHTML}</div>
+            </div>
+        `;
+
+        document.getElementById('prevBtn').disabled = index === 0;
+        document.getElementById('nextBtn').innerText = index === currentQuestions.length - 1 ? "[ END SEQUENCE ]" : "LANJUT >>";
+        updateNavGrid();
+    }
+
+    function selectOption(opt) {
+        answers[currentQuestions[currentIdx].id] = opt;
+        loadQuestion(currentIdx); 
+    }
+
+    function changeQuestion(dir) {
+        const newIdx = currentIdx + dir;
+        if(newIdx >= 0 && newIdx < currentQuestions.length) loadQuestion(newIdx);
+    }
+
+    function renderNav() {
+        const grid = document.getElementById('nav-grid');
+        grid.innerHTML = "";
+        currentQuestions.forEach((q, idx) => {
+            const btn = document.createElement('div');
+            btn.className = 'nav-btn'; 
+            btn.innerText = q.id; 
+            btn.id = `nav-${q.id}`;
+            btn.onclick = () => loadQuestion(idx);
+            grid.appendChild(btn);
+        });
+    }
+
+    function updateNavGrid() {
+        currentQuestions.forEach((q, idx) => {
+            const btn = document.getElementById(`nav-${q.id}`);
+            if(idx === currentIdx) {
+                btn.className = 'nav-btn active';
+            } else if(answers[q.id]) {
+                btn.className = 'nav-btn answered';
+            } else {
+                btn.className = 'nav-btn';
+            }
+        });
+    }
+
+    function finishExam() {
+        const answeredCount = Object.keys(answers).length;
+        if(answeredCount < currentQuestions.length) {
+            if(!confirm(`WARNING: Data corrupt. Anda baru mengisi ${answeredCount} dari ${currentQuestions.length} parameter. Paksa transmit?`)) return;
+        } else {
+            if(!confirm("Kalkulasi data dan kirim ke server utama?")) return;
+        }
+        
+        document.getElementById('exam-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+
+        let correctCount = 0;
+        currentQuestions.forEach(q => { 
+            if(answers[q.id] && _map[answers[q.id]] === q._k) correctCount++; 
+        });
+
+        document.getElementById('score-display').innerText = correctCount * 2;
+    }
+</script>
+
+</body>
+</html>
